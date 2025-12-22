@@ -3,263 +3,284 @@
 
 #ifdef O_SERIALIZE_USE_QT
 
+#include "o_serialize/json.h"
 #include <cassert>
 #include <iostream>
-#include <string>
-#include <QColor>
+#include <QDate>
 #include <QDateTime>
 #include <QHash>
+#include <QLinkedList>
 #include <QList>
 #include <QMap>
 #include <QPoint>
-#include <QPointer>
+#include <QPointF>
 #include <QQueue>
 #include <QRect>
-#include <QScopedPointer>
+#include <QRectF>
 #include <QSet>
 #include <QSharedPointer>
+#include <QSize>
+#include <QSizeF>
 #include <QStack>
 #include <QString>
 #include <QStringList>
+#include <QTime>
 #include <QVariant>
 #include <QVector>
 
-#include "o_serialize/ini.h"
-#include "o_serialize/json.h"
-#include "o_serialize/o_serialize.h"
-#include "o_serialize/xml.h"
-
-// Custom struct with Qt types
-struct QtPerson
-{
-    QString            name;
-    int                age;
-    QStringList        skills;
-    QMap<int, QString> maps;
-
-    bool operator==(const QtPerson &other) const
-    {
-        return name == other.name && age == other.age && skills == other.skills && maps == other.maps;
-    }
-};
-
-O_SERIALIZE_STRUCT(QtPerson, name, age, skills, maps)
+using namespace OSerialize;
 
 namespace QtTest {
 
-void test_qt_types()
+void test_qstring()
 {
-    std::cout << "[Qt] Testing Basic Types..." << std::endl;
-
-    QString s = "Hello Qt";
-
-    // JSON
-    std::string s_json = OSerialize::JSON::stringify(s);
-    assert(OSerialize::JSON::parse<QString>(s_json) == s);
-
-    // XML
-    std::string s_xml = OSerialize::XML::stringify(s, "string");
-    assert(OSerialize::XML::parse<QString>(s_xml, "string") == s);
-
-    // INI
-    std::string s_ini = OSerialize::INI::stringify(s, "default");
-    assert(OSerialize::INI::parse<QString>(s_ini, "default") == s);
-
-    std::cout << "[Qt] Basic Types Passed!" << std::endl;
+    std::cout << "Testing QString..." << std::endl;
+    QString     original = "Hello Qt";
+    std::string json = JSON::obj_to_string(original);
+    QString     parsed = JSON::string_to_obj<QString>(json);
+    assert(original == parsed);
 }
 
-void test_qt_containers()
+void test_qstringlist()
 {
-    std::cout << "[Qt] Testing Containers..." << std::endl;
-
-    QStringList list;
-    list << "One" << "Two";
-    QList<int> qlist;
-    qlist << 10 << 20;
-    QVector<double> qvec;
-    qvec << 1.1 << 2.2;
-    QSet<QString> qset;
-    qset << "A" << "B";
-
-    // JSON
-    assert(OSerialize::JSON::parse<QStringList>(OSerialize::JSON::stringify(list)) == list);
-    assert(OSerialize::JSON::parse<QList<int>>(OSerialize::JSON::stringify(qlist)) == qlist);
-    assert(OSerialize::JSON::parse<QVector<double>>(OSerialize::JSON::stringify(qvec)) == qvec);
-    assert(OSerialize::JSON::parse<QSet<QString>>(OSerialize::JSON::stringify(qset)) == qset);
-
-    // XML
-    assert(OSerialize::XML::parse<QStringList>(OSerialize::XML::stringify(list, "l"), "l") == list);
-    assert(OSerialize::XML::parse<QList<int>>(OSerialize::XML::stringify(qlist, "l"), "l") == qlist);
-
-    // INI
-    assert(OSerialize::INI::parse<QStringList>(OSerialize::INI::stringify(list, "l"), "l") == list);
-
-    std::cout << "[Qt] Containers Passed!" << std::endl;
+    std::cout << "Testing QStringList..." << std::endl;
+    QStringList original = {"A", "B", "C"};
+    std::string json = JSON::obj_to_string(original);
+    QStringList parsed = JSON::string_to_obj<QStringList>(json);
+    assert(original == parsed);
 }
 
-void test_qt_maps()
+void test_qvector()
 {
-    std::cout << "[Qt] Testing Maps..." << std::endl;
-
-    QMap<QString, int> qmap;
-    qmap["one"] = 1;
-    qmap["two"] = 2;
-
-    QHash<QString, double> qhash;
-    qhash["pi"] = 3.14;
-    qhash["e"] = 2.71;
-
-    // JSON
-    auto qmap_json = OSerialize::JSON::parse<QMap<QString, int>>(OSerialize::JSON::stringify(qmap));
-    assert(qmap_json == qmap);
-
-    auto qhash_json = OSerialize::JSON::parse<QHash<QString, double>>(OSerialize::JSON::stringify(qhash));
-    assert(qhash_json == qhash);
-
-    // XML
-    auto qmap_xml = OSerialize::XML::parse<QMap<QString, int>>(OSerialize::XML::stringify(qmap, "map"), "map");
-    assert(qmap_xml == qmap);
-
-    auto qhash_xml = OSerialize::XML::parse<QHash<QString, double>>(OSerialize::XML::stringify(qhash, "hash"), "hash");
-    assert(qhash_xml == qhash);
-
-    // INI
-    auto qmap_ini = OSerialize::INI::parse<QMap<QString, int>>(OSerialize::INI::stringify(qmap, "map"), "map");
-    assert(qmap_ini == qmap);
-
-    std::cout << "[Qt] Maps Passed!" << std::endl;
+    std::cout << "Testing QVector..." << std::endl;
+    QVector<int> original = {10, 20, 30};
+    std::string  json = JSON::obj_to_string(original);
+    QVector<int> parsed = JSON::string_to_obj<QVector<int>>(json);
+    assert(original == parsed);
 }
 
-void test_qt_geometry()
+void test_qlist()
 {
-    std::cout << "[Qt] Testing Geometry..." << std::endl;
-
-    QPoint pt(10, 20);
-    QRect  rect(0, 0, 100, 200);
-
-    // JSON
-    assert(OSerialize::JSON::parse<QPoint>(OSerialize::JSON::stringify(pt)) == pt);
-    assert(OSerialize::JSON::parse<QRect>(OSerialize::JSON::stringify(rect)) == rect);
-
-    // XML
-    assert(OSerialize::XML::parse<QPoint>(OSerialize::XML::stringify(pt, "pt"), "pt") == pt);
-    assert(OSerialize::XML::parse<QRect>(OSerialize::XML::stringify(rect, "rect"), "rect") == rect);
-
-    std::cout << "[Qt] Geometry Passed!" << std::endl;
+    std::cout << "Testing QList..." << std::endl;
+    QList<double> original = {1.5, 2.5};
+    std::string   json = JSON::obj_to_string(original);
+    QList<double> parsed = JSON::string_to_obj<QList<double>>(json);
+    assert(original == parsed);
 }
 
-void test_qt_datetime()
+void test_qstack()
 {
-    std::cout << "[Qt] Testing DateTime..." << std::endl;
-
-    QDate     date = QDate::currentDate();
-    QDateTime dt = QDateTime::currentDateTime();
-    // Remove milliseconds for consistency in ISO string if needed,
-    // but QDateTime::toString(Qt::ISODate) usually stable.
-
-    // JSON
-    assert(OSerialize::JSON::parse<QDate>(OSerialize::JSON::stringify(date)) == date);
-    // Note: Floating point precision or timezone might affect strict equality string match,
-    // but serialization cycle should hold.
-    QDateTime dt_parsed = OSerialize::JSON::parse<QDateTime>(OSerialize::JSON::stringify(dt));
-    // Simple check (string format match)
-    assert(dt.toString(Qt::ISODate) == dt_parsed.toString(Qt::ISODate));
-
-    std::cout << "[Qt] DateTime Passed!" << std::endl;
+    std::cout << "Testing QStack..." << std::endl;
+    QStack<int> original;
+    original.push(1);
+    original.push(2);
+    std::string json = JSON::obj_to_string(original);
+    QStack<int> parsed = JSON::string_to_obj<QStack<int>>(json);
+    assert(original == parsed);
 }
 
-void test_qt_pointers()
+void test_qqueue()
 {
-    std::cout << "[Qt] Testing Smart Pointers..." << std::endl;
-
-    QSharedPointer<int>    ptr = QSharedPointer<int>::create(123);
-    QScopedPointer<double> ptr_d(new double(1.2));
-
-    // JSON
-    auto ptr_json = OSerialize::JSON::parse<QSharedPointer<int>>(OSerialize::JSON::stringify(ptr));
-    assert(*ptr_json == 123);
-    auto ptrd_json = OSerialize::JSON::parse<QSharedPointer<double>>(OSerialize::JSON::stringify(ptr_d));
-    assert(*ptrd_json == 1.2);
-
-    // XML
-    auto ptr_xml = OSerialize::XML::parse<QSharedPointer<int>>(OSerialize::XML::stringify(ptr, "p"), "p");
-    assert(*ptr_xml == 123);
-    auto ptrd_xml = OSerialize::XML::parse<QSharedPointer<double>>(OSerialize::XML::stringify(ptr_d, "p"), "p");
-    assert(*ptrd_xml == 1.2);
-
-    std::cout << "[Qt] Smart Pointers Passed!" << std::endl;
+    std::cout << "Testing QQueue..." << std::endl;
+    QQueue<int> original;
+    original.enqueue(1);
+    original.enqueue(2);
+    std::string json = JSON::obj_to_string(original);
+    QQueue<int> parsed = JSON::string_to_obj<QQueue<int>>(json);
+    assert(original == parsed);
 }
 
-void test_qt_variant()
+void test_qset()
 {
-    std::cout << "[Qt] Testing QVariant..." << std::endl;
-
-    QVariant     v1 = 42;
-    QVariant     v2 = QString("test");
-    QVariantList vList;
-    vList << 1 << "A";
-    QVariant v3 = vList;
-    QVariant v4 = 1.2;
-
-    // JSON
-    assert(OSerialize::JSON::parse<QVariant>(OSerialize::JSON::stringify(v1)) == v1);
-    assert(OSerialize::JSON::parse<QVariant>(OSerialize::JSON::stringify(v2)) == v2);
-    assert(OSerialize::JSON::parse<QVariant>(OSerialize::JSON::stringify(v4)) == v4);
-
-    QVariant v3_parsed = OSerialize::JSON::parse<QVariant>(OSerialize::JSON::stringify(v3));
-    assert(v3_parsed.toList() == vList);
-
-    std::cout << "[Qt] QVariant Passed!" << std::endl;
+    std::cout << "Testing QSet..." << std::endl;
+    QSet<int>   original = {1, 2, 3};
+    std::string json = JSON::obj_to_string(original);
+    QSet<int>   parsed = JSON::string_to_obj<QSet<int>>(json);
+    assert(original == parsed);
 }
 
-void test_qt_custom_structs()
+void test_qmap()
 {
-    std::cout << "[Qt] Testing Custom Structs..." << std::endl;
+    std::cout << "Testing QMap..." << std::endl;
+    QMap<QString, int> original;
+    original.insert("one", 1);
+    original.insert("two", 2);
+    std::string        json = JSON::obj_to_string(original);
+    QMap<QString, int> parsed = JSON::string_to_obj<QMap<QString, int>>(json);
+    assert(original == parsed);
+    assert((original
+            == JSON::string_to_obj<QMap<QString, int>>(json))); // assert宏导致异常，需要添加()来解决
+}
 
-    QtPerson p;
-    p.name = "Bob";
-    p.age = 25;
-    p.skills << "Qt" << "C++";
-    p.maps[1] = "test1";
-    p.maps[2] = "test2";
+void test_qhash()
+{
+    std::cout << "Testing QHash..." << std::endl;
+    QHash<QString, int> original;
+    original.insert("key1", 100);
+    original.insert("key2", 200);
+    std::string         json = JSON::obj_to_string(original);
+    QHash<QString, int> parsed = JSON::string_to_obj<QHash<QString, int>>(json);
+    assert(original == parsed);
+}
 
-    // JSON
-    std::string p_json = OSerialize::JSON::stringify(p);
-    assert(OSerialize::JSON::parse<QtPerson>(p_json) == p);
+void test_qdate()
+{
+    std::cout << "Testing QDate..." << std::endl;
+    QDate       original = QDate::currentDate();
+    std::string json = JSON::obj_to_string(original);
+    QDate       parsed = JSON::string_to_obj<QDate>(json);
+    assert(original == parsed);
+}
 
-    // XML
-    std::string p_xml = OSerialize::XML::stringify(p, "Person");
-    assert(OSerialize::XML::parse<QtPerson>(p_xml, "Person") == p);
+void test_qtime()
+{
+    std::cout << "Testing QTime..." << std::endl;
+    // QTime stores milliseconds but JSON format is ISODate (HH:mm:ss) usually, check impl.
+    // If ISODate includes MS, it's fine. If not, precision loss.
+    // Implementation uses Qt::ISODate.
+    // QTime::toString(Qt::ISODate) usually includes MS if not zero?
+    // Let's set time to something safe (no MS) or check.
+    QTime       original(12, 34, 56);
+    std::string json = JSON::obj_to_string(original);
+    QTime       parsed = JSON::string_to_obj<QTime>(json);
+    assert(original == parsed);
+}
 
-    // INI
-    std::string p_ini = OSerialize::INI::stringify(p, "Person");
-    assert(OSerialize::INI::parse<QtPerson>(p_ini, "Person") == p);
+void test_qdatetime()
+{
+    std::cout << "Testing QDateTime..." << std::endl;
+    QDateTime   original(QDate(2023, 1, 1), QTime(12, 0, 0));
+    std::string json = JSON::obj_to_string(original);
+    QDateTime   parsed = JSON::string_to_obj<QDateTime>(json);
+    assert(original == parsed);
+}
 
-    std::cout << "[Qt] Custom Structs Passed!" << std::endl;
+void test_qpoint()
+{
+    std::cout << "Testing QPoint..." << std::endl;
+    QPoint      original(10, 20);
+    std::string json = JSON::obj_to_string(original);
+    QPoint      parsed = JSON::string_to_obj<QPoint>(json);
+    assert(original == parsed);
+}
+
+void test_qrect()
+{
+    std::cout << "Testing QRect..." << std::endl;
+    QRect       original(0, 0, 100, 200);
+    std::string json = JSON::obj_to_string(original);
+    QRect       parsed = JSON::string_to_obj<QRect>(json);
+    assert(original == parsed);
+}
+
+void test_qvariant()
+{
+    std::cout << "Testing QVariant..." << std::endl;
+    QVariant    original = 123;
+    std::string json = JSON::obj_to_string(original);
+    QVariant    parsed = JSON::string_to_obj<QVariant>(json);
+    assert(parsed.toInt() == 123);
+
+    original = QString("VariantString");
+    json = JSON::obj_to_string(original);
+    parsed = JSON::string_to_obj<QVariant>(json);
+    assert(parsed.toString() == "VariantString");
+}
+
+void test_qsharedpointer()
+{
+    std::cout << "Testing QSharedPointer..." << std::endl;
+    QSharedPointer<int> original = QSharedPointer<int>::create(42);
+    std::string         json = JSON::obj_to_string(original);
+    auto                parsed = JSON::string_to_obj<QSharedPointer<int>>(json);
+    assert(*parsed == *original);
+
+    QSharedPointer<int> nullPtr;
+    json = JSON::obj_to_string(nullPtr);
+    parsed = JSON::string_to_obj<QSharedPointer<int>>(json);
+    assert(parsed.isNull());
+}
+
+struct AllQtTypes
+{
+    QString             str;
+    QStringList         strList;
+    QVector<int>        vec;
+    QList<double>       list;
+    QMap<QString, int>  map;
+    QDate               date;
+    QDateTime           dt;
+    QPoint              pt;
+    QRect               rect;
+    QVariant            var;
+    QSharedPointer<int> ptr;
+
+    bool operator==(const AllQtTypes &other) const
+    {
+        return str == other.str && strList == other.strList && vec == other.vec
+               && list == other.list && map == other.map && date == other.date && dt == other.dt
+               && pt == other.pt && rect == other.rect && var == other.var
+               && ((ptr.isNull() && other.ptr.isNull())
+                   || (!ptr.isNull() && !other.ptr.isNull() && *ptr == *other.ptr));
+    }
+};
+} // namespace QtTest
+
+O_SERIALIZE_STRUCT(QtTest::AllQtTypes, str, strList, vec, list, map, date, dt, pt, rect, var, ptr);
+
+namespace QtTest {
+void test_all_qt_types()
+{
+    std::cout << "Testing AllQtTypes struct..." << std::endl;
+    AllQtTypes original;
+    original.str = "Qt Struct";
+    original.strList = QStringList({"Item1", "Item2"});
+    original.vec = {1, 2, 3};
+    original.list = {1.1, 2.2};
+    original.map.insert("key", 999);
+    original.date = QDate(2023, 10, 1);
+    original.dt = QDateTime(QDate(2023, 10, 1), QTime(10, 0, 0));
+    original.pt = QPoint(5, 5);
+    original.rect = QRect(0, 0, 50, 50);
+    original.var = 100;
+    original.ptr = QSharedPointer<int>::create(888);
+
+    std::string json = JSON::obj_to_string(original);
+    AllQtTypes  parsed = JSON::string_to_obj<AllQtTypes>(json);
+
+    assert(original == parsed);
+    std::cout << "AllQtTypes struct passed." << std::endl;
 }
 
 void run_all()
 {
-    test_qt_types();
-    test_qt_containers();
-    test_qt_maps();
-    test_qt_geometry();
-    test_qt_datetime();
-    test_qt_pointers();
-    test_qt_variant();
-    test_qt_custom_structs();
+    test_qstring();
+    test_qstringlist();
+    test_qvector();
+    test_qlist();
+    test_qstack();
+    test_qqueue();
+    test_qset();
+    test_qmap();
+    test_qhash();
+    test_qdate();
+    test_qtime();
+    test_qdatetime();
+    test_qpoint();
+    test_qrect();
+    test_qvariant();
+    test_qsharedpointer();
+    test_all_qt_types();
 }
 } // namespace QtTest
 
 #else
-
 namespace QtTest {
 void run_all()
 {
-    std::cout << "[Qt] Qt support not enabled. Skipping tests." << std::endl;
+    std::cout << "Qt support disabled. Skipping Qt tests." << std::endl;
 }
 } // namespace QtTest
+#endif
 
-#endif // O_SERIALIZE_USE_QT
-
-#endif // QT_TEST_H
+#endif

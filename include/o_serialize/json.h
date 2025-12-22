@@ -6,8 +6,12 @@
 #include "rapidjson/document.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/istreamwrapper.h"
+#include "rapidjson/ostreamwrapper.h"
 #include <string>
 #include <iostream>
+#include <fstream>
+#include <cstdlib>
 
 #ifdef O_SERIALIZE_USE_QT
 #include <QDateTime>
@@ -30,7 +34,7 @@ namespace OSerialize {
 class JSON {
 public:
     template <typename T>
-    static std::string stringify(const T& obj) {
+    static std::string obj_to_string(const T& obj) {
         rapidjson::Document doc;
         rapidjson::Value val = to_json(obj, doc.GetAllocator());
         
@@ -41,7 +45,7 @@ public:
     }
 
     template <typename T>
-    static T parse(const std::string& json) {
+    static T string_to_obj(const std::string& json) {
         rapidjson::Document doc;
         doc.Parse(json.c_str());
         
@@ -55,13 +59,49 @@ public:
         return obj;
     }
 
+    template <typename T>
+    static bool obj_to_file(const T& obj, const std::string& filepath) {
+        rapidjson::Document doc;
+        rapidjson::Value val = to_json(obj, doc.GetAllocator());
+        
+        std::ofstream ofs(filepath);
+        if (!ofs.is_open()) return false;
+        
+        rapidjson::OStreamWrapper osw(ofs);
+        rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
+        val.Accept(writer);
+        return true;
+    }
+
+    template <typename T>
+    static T file_to_obj(const std::string& filepath) {
+        T obj;
+        std::ifstream ifs(filepath);
+        if (!ifs.is_open()) {
+            std::cerr << "Cannot open file: " << filepath << std::endl;
+            return obj;
+        }
+        
+        rapidjson::IStreamWrapper isw(ifs);
+        rapidjson::Document doc;
+        doc.ParseStream(isw);
+        
+        if (doc.HasParseError()) {
+            std::cerr << "JSON Parse Error" << std::endl;
+            return obj;
+        }
+        
+        from_json(doc, obj);
+        return obj;
+    }
+
 private:
     // --- Helper for container insert ---
     template <typename C, typename V>
-    static auto add_item(C& c, const V& v) -> decltype(c.push_back(v)) { c.push_back(v); }
+    static auto add_item(C& c, const V& v) -> decltype(c.push_back(v)) { return c.push_back(v); }
 
     template <typename C, typename V>
-    static auto add_item(C& c, const V& v) -> decltype(c.insert(v)) { c.insert(v); }
+    static auto add_item(C& c, const V& v) -> decltype(c.insert(v)) { return c.insert(v); }
 
     // --- to_json implementations ---
 
@@ -123,6 +163,39 @@ private:
         return std::visit([&](const auto& val) {
             return to_json(val, allocator);
         }, v);
+    }
+
+    // std::pair
+    template <typename K, typename V>
+    static rapidjson::Value to_json(const std::pair<K, V>& pair, rapidjson::Document::AllocatorType& allocator) {
+        rapidjson::Value obj(rapidjson::kObjectType);
+        rapidjson::Value key1("first", allocator);
+        obj.AddMember(key1, to_json(pair.first, allocator), allocator);
+        rapidjson::Value key2("second", allocator);
+        obj.AddMember(key2, to_json(pair.second, allocator), allocator);
+        return obj;
+    }
+
+    // std::pair
+    template <typename K, typename V>
+    static void from_json(const rapidjson::Value& json, std::pair<K, V>& pair) {
+        if (!json.IsObject()) return;
+        if (json.HasMember("first")) from_json(json["first"], pair.first);
+        if (json.HasMember("second")) from_json(json["second"], pair.second);
+    }
+
+    // std::tuple
+    template <typename Tuple, size_t... Is>
+    static void tuple_to_json_helper(const Tuple& t, rapidjson::Value& arr, rapidjson::Document::AllocatorType& allocator, std::index_sequence<Is...>) {
+        (arr.PushBack(to_json(std::get<Is>(t), allocator), allocator), ...);
+    }
+
+    template <typename... Args>
+    static typename std::enable_if<Traits::is_tuple<std::tuple<Args...>>::value, rapidjson::Value>::type
+    to_json(const std::tuple<Args...>& t, rapidjson::Document::AllocatorType& allocator) {
+        rapidjson::Value arr(rapidjson::kArrayType);
+        tuple_to_json_helper(t, arr, allocator, std::index_sequence_for<Args...>{});
+        return arr;
     }
 
 #ifdef O_SERIALIZE_USE_QT
@@ -285,7 +358,7 @@ private:
     }
 
 
-#endif (Vector, List, Set, Queue, Stack)
+#endif // (Vector, List, Set, Queue, Stack)
     template <typename T>
     static typename std::enable_if<Traits::is_stl_container<T>::value || Traits::is_qt_container<T>::value, rapidjson::Value>::type
     to_json(const T& container, rapidjson::Document::AllocatorType& allocator) {
@@ -387,6 +460,20 @@ private:
         if(json.IsString()) val = json.GetString(); 
     }
 
+    // std::tuple
+    template <typename Tuple, size_t... Is>
+    static void tuple_from_json_helper(const rapidjson::Value& arr, Tuple& t, std::index_sequence<Is...>) {
+        if (!arr.IsArray()) return;
+        size_t size = arr.Size();
+        ( (Is < size ? (from_json(arr[Is], std::get<Is>(t)), 0) : 0), ... );
+    }
+
+    template <typename... Args>
+    static typename std::enable_if<Traits::is_tuple<std::tuple<Args...>>::value>::type
+    from_json(const rapidjson::Value& json, std::tuple<Args...>& t) {
+        tuple_from_json_helper(json, t, std::index_sequence_for<Args...>{});
+    }
+
     // Smart Pointers
     template <typename T>
     static typename std::enable_if<Traits::is_smart_ptr<T>::value>::type
@@ -395,14 +482,18 @@ private:
             ptr.reset();
             return;
         }
-        // Assuming shared_ptr/unique_ptr default constructor creates empty, we need make_shared/unique
-        using ElementType = typename T::element_type;
-        // Simple approach: create new object
-        ptr = std::make_shared<ElementType>(); 
-        // For unique_ptr this make_shared won't work.
-        // Let's support shared_ptr primarily as requested.
-        // If T is unique_ptr, we need make_unique (C++14).
+        create_smart_ptr(ptr);
         from_json(json, *ptr);
+    }
+
+    template <typename T>
+    static void create_smart_ptr(std::shared_ptr<T>& ptr) {
+        ptr = std::make_shared<T>();
+    }
+
+    template <typename T>
+    static void create_smart_ptr(std::unique_ptr<T>& ptr) {
+        ptr = std::unique_ptr<T>(new T());
     }
 
 #ifdef O_SERIALIZE_USE_QT
@@ -567,11 +658,17 @@ private:
         }
     }
     
-    // Helper to insert into map (handling different key types if needed, simplified for string keys)
+    template <typename T>
+    static T key_from_string(const char* key) {
+        if constexpr (std::is_integral<T>::value) return static_cast<T>(std::atoll(key));
+        else if constexpr (std::is_floating_point<T>::value) return static_cast<T>(std::atof(key));
+        else return T(key);
+    }
+
+    // Helper to insert into map (handling different key types)
     template <typename Map, typename Val>
     static void insert_map_item(Map& map, const char* key, const Val& val) {
-        // This relies on implicit conversion of key
-        map[key] = val;
+        map[key_from_string<typename Map::key_type>(key)] = val;
     }
 
 };

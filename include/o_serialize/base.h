@@ -70,6 +70,10 @@ namespace Traits {
     template <typename T> struct is_variant : std::false_type {};
     template <typename... Args> struct is_variant<std::variant<Args...>> : std::true_type {};
 
+    // std::tuple
+    template <typename T> struct is_tuple : std::false_type {};
+    template <typename... Args> struct is_tuple<std::tuple<Args...>> : std::true_type {};
+
     // --- Qt Traits ---
 
 #ifdef O_SERIALIZE_USE_QT

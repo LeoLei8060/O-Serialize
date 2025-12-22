@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <cstdlib>
 
 #ifdef O_SERIALIZE_USE_QT
 #include <QDateTime>
@@ -65,10 +66,10 @@ public:
 private:
     // --- Helper for container insert ---
     template <typename C, typename V>
-    static auto add_item(C& c, const V& v) -> decltype(c.push_back(v)) { c.push_back(v); }
+    static auto add_item(C& c, const V& v) -> decltype(c.push_back(v)) { return c.push_back(v); }
 
     template <typename C, typename V>
-    static auto add_item(C& c, const V& v) -> decltype(c.insert(v)) { c.insert(v); }
+    static auto add_item(C& c, const V& v) -> decltype(c.insert(v)) { return c.insert(v); }
 
     // --- to_xml implementations ---
 
@@ -462,10 +463,17 @@ private:
         }
     }
     
+    template <typename T>
+    static T key_from_string(const char* key) {
+        if constexpr (std::is_integral<T>::value) return static_cast<T>(std::atoll(key));
+        else if constexpr (std::is_floating_point<T>::value) return static_cast<T>(std::atof(key));
+        else return T(key);
+    }
+    
     // Helper to insert into map
     template <typename Map, typename Val>
     static void insert_map_item(Map& map, const char* key, const Val& val) {
-        map[key] = val;
+        map[key_from_string<typename Map::key_type>(key)] = val;
     }
 };
 

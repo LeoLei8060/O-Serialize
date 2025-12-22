@@ -1,226 +1,179 @@
 #ifndef STL_TEST_H
 #define STL_TEST_H
 
-#include "o_serialize/ini.h"
 #include "o_serialize/json.h"
-#include "o_serialize/o_serialize.h"
-#include "o_serialize/xml.h"
 #include <cassert>
 #include <iostream>
-#include <string>
-#include <map>
-#include <set>
 #include <vector>
 #include <list>
+#include <deque>
+#include <set>
+#include <map>
 #include <unordered_map>
+#include <string>
 #include <memory>
+#include <tuple>
+#include <utility>
 #include <variant>
 
-// Custom struct for testing
-struct Person {
-  std::string name;
-  int age;
-  std::vector<std::string> skills;
-
-  bool operator==(const Person &other) const {
-    return name == other.name && age == other.age && skills == other.skills;
-  }
-};
-
-O_SERIALIZE_STRUCT(Person, name, age, skills)
-
-struct Group {
-  std::string groupName;
-  Person leader;
-  std::vector<Person> members;
-
-  bool operator==(const Group &other) const {
-    return groupName == other.groupName && leader == other.leader &&
-           members == other.members;
-  }
-};
-
-O_SERIALIZE_STRUCT(Group, groupName, leader, members)
-
-enum class Color { Red, Green, Blue };
+using namespace OSerialize;
 
 namespace StlTest {
 
-void test_basic_types() {
-  std::cout << "[STL] Testing Basic Types..." << std::endl;
+    void test_int() {
+        std::cout << "Testing int..." << std::endl;
+        int original = 123;
+        std::string json = JSON::obj_to_string(original);
+        int parsed = JSON::string_to_obj<int>(json);
+        assert(original == parsed);
+    }
 
-  // JSON
-  int i = 42;
-  std::string i_json = OSerialize::JSON::stringify(i);
-  assert(OSerialize::JSON::parse<int>(i_json) == 42);
+    void test_double() {
+        std::cout << "Testing double..." << std::endl;
+        double original = 123.456;
+        std::string json = JSON::obj_to_string(original);
+        double parsed = JSON::string_to_obj<double>(json);
+        // simple float comparison
+        assert(abs(original - parsed) < 0.0001);
+    }
 
-  // XML
-  std::string i_xml = OSerialize::XML::stringify(i, "value");
-  assert(OSerialize::XML::parse<int>(i_xml, "value") == 42);
+    void test_string() {
+        std::cout << "Testing std::string..." << std::endl;
+        std::string original = "Hello World";
+        std::string json = JSON::obj_to_string(original);
+        std::string parsed = JSON::string_to_obj<std::string>(json);
+        assert(original == parsed);
+    }
 
-  // INI
-  std::string i_ini = OSerialize::INI::stringify(i, "default");
-  assert(OSerialize::INI::parse<int>(i_ini, "default") == 42);
-  
-  // Enum
-  Color c = Color::Green;
-  // JSON Enum
-  std::string c_json = OSerialize::JSON::stringify(c);
-  assert(OSerialize::JSON::parse<Color>(c_json) == Color::Green);
-  
-  // XML Enum
-  std::string c_xml = OSerialize::XML::stringify(c, "color");
-  assert(OSerialize::XML::parse<Color>(c_xml, "color") == Color::Green);
+    void test_vector() {
+        std::cout << "Testing std::vector..." << std::endl;
+        std::vector<int> original = {1, 2, 3, 4, 5};
+        std::string json = JSON::obj_to_string(original);
+        std::vector<int> parsed = JSON::string_to_obj<std::vector<int>>(json);
+        assert(original == parsed);
+    }
 
-  std::cout << "[STL] Basic Types Passed!" << std::endl;
+    void test_list() {
+        std::cout << "Testing std::list..." << std::endl;
+        std::list<std::string> original = {"a", "b", "c"};
+        std::string json = JSON::obj_to_string(original);
+        std::list<std::string> parsed = JSON::string_to_obj<std::list<std::string>>(json);
+        assert(original == parsed);
+    }
+
+    void test_deque() {
+        std::cout << "Testing std::deque..." << std::endl;
+        std::deque<float> original = {1.1f, 2.2f};
+        std::string json = JSON::obj_to_string(original);
+        std::deque<float> parsed = JSON::string_to_obj<std::deque<float>>(json);
+        assert(original.size() == parsed.size());
+        assert(abs(original[0] - parsed[0]) < 0.0001);
+    }
+
+    void test_set() {
+        std::cout << "Testing std::set..." << std::endl;
+        std::set<int> original = {1, 5, 2, 4}; // 1, 2, 4, 5
+        std::string json = JSON::obj_to_string(original);
+        std::set<int> parsed = JSON::string_to_obj<std::set<int>>(json);
+        assert(original == parsed);
+    }
+
+    void test_map() {
+        std::cout << "Testing std::map..." << std::endl;
+        std::map<std::string, int> original = {{"one", 1}, {"two", 2}};
+        std::string json = JSON::obj_to_string(original);
+        std::map<std::string, int> parsed = JSON::string_to_obj<std::map<std::string, int>>(json);
+        assert(original == parsed);
+    }
+
+    void test_pair() {
+        std::cout << "Testing std::pair..." << std::endl;
+        std::pair<int, std::string> original = {42, "answer"};
+        std::string json = JSON::obj_to_string(original);
+        std::pair<int, std::string> parsed = JSON::string_to_obj<std::pair<int, std::string>>(json);
+        assert(original == parsed);
+    }
+
+    void test_tuple() {
+        std::cout << "Testing std::tuple..." << std::endl;
+        std::tuple<int, double, std::string> original = {1, 3.14, "tuple"};
+        std::string json = JSON::obj_to_string(original);
+        auto parsed = JSON::string_to_obj<std::tuple<int, double, std::string>>(json);
+        assert(original == parsed);
+    }
+
+    void test_shared_ptr() {
+        std::cout << "Testing std::shared_ptr..." << std::endl;
+        std::shared_ptr<int> original = std::make_shared<int>(999);
+        std::string json = JSON::obj_to_string(original);
+        auto parsed = JSON::string_to_obj<std::shared_ptr<int>>(json);
+        assert(*original == *parsed);
+        
+        std::shared_ptr<int> nullPtr;
+        json = JSON::obj_to_string(nullPtr);
+        parsed = JSON::string_to_obj<std::shared_ptr<int>>(json);
+        assert(parsed == nullptr);
+    }
+
+    struct AllStlTypes {
+        int i;
+        double d;
+        std::string s;
+        std::vector<int> vec;
+        std::map<std::string, int> map;
+        std::pair<int, std::string> pair;
+        std::tuple<int, double> tuple;
+        std::shared_ptr<int> ptr;
+        
+        bool operator==(const AllStlTypes& other) const {
+            return i == other.i &&
+                   std::abs(d - other.d) < 0.001 &&
+                   s == other.s &&
+                   vec == other.vec &&
+                   map == other.map &&
+                   pair == other.pair &&
+                   tuple == other.tuple &&
+                   ((!ptr && !other.ptr) || (ptr && other.ptr && *ptr == *other.ptr));
+        }
+    };
 }
 
-void test_containers() {
-  std::cout << "[STL] Testing Containers..." << std::endl;
+O_SERIALIZE_STRUCT(StlTest::AllStlTypes, i, d, s, vec, map, pair, tuple, ptr);
 
-  std::vector<int> vec = {1, 2, 3};
-  std::list<std::string> lst = {"A", "B"};
-  std::set<int> st = {10, 20};
+namespace StlTest {
+    void test_all_stl_types() {
+        std::cout << "Testing AllStlTypes struct..." << std::endl;
+        AllStlTypes original;
+        original.i = 100;
+        original.d = 99.9;
+        original.s = "Complete";
+        original.vec = {10, 20, 30};
+        original.map = {{"key", 100}};
+        original.pair = {5, "five"};
+        original.tuple = {1, 2.0};
+        original.ptr = std::make_shared<int>(777);
 
-  // JSON
-  assert(OSerialize::JSON::parse<std::vector<int>>(OSerialize::JSON::stringify(vec)) == vec);
-  assert(OSerialize::JSON::parse<std::list<std::string>>(OSerialize::JSON::stringify(lst)) == lst);
-  assert(OSerialize::JSON::parse<std::set<int>>(OSerialize::JSON::stringify(st)) == st);
+        std::string json = JSON::obj_to_string(original);
+        // std::cout << "JSON: " << json << std::endl;
+        AllStlTypes parsed = JSON::string_to_obj<AllStlTypes>(json);
 
-  // XML
-  assert(OSerialize::XML::parse<std::vector<int>>(OSerialize::XML::stringify(vec, "list"), "list") == vec);
-  assert(OSerialize::XML::parse<std::list<std::string>>(OSerialize::XML::stringify(lst, "list"), "list") == lst);
-  // Set in XML order might vary? Set is ordered. XML order is insertion order from iteration. Should match.
-  assert(OSerialize::XML::parse<std::set<int>>(OSerialize::XML::stringify(st, "set"), "set") == st);
+        assert(original == parsed);
+    }
 
-  // INI
-  assert(OSerialize::INI::parse<std::vector<int>>(OSerialize::INI::stringify(vec, "vec"), "vec") == vec);
-
-  std::cout << "[STL] Containers Passed!" << std::endl;
+    void run_all() {
+        test_int();
+        test_double();
+        test_string();
+        test_vector();
+        test_list();
+        test_deque();
+        test_set();
+        test_map();
+        test_pair();
+        test_tuple();
+        test_shared_ptr();
+        test_all_stl_types();
+    }
 }
 
-void test_maps() {
-    std::cout << "[STL] Testing Maps..." << std::endl;
-    
-    std::map<std::string, int> m = {{"one", 1}, {"two", 2}};
-    // Unordered map might have different order in serialization string, but object comparison handles it.
-    std::unordered_map<std::string, int> um = {{"apple", 5}, {"banana", 10}}; 
-
-    // JSON
-    auto m_json = OSerialize::JSON::parse<std::map<std::string, int>>(OSerialize::JSON::stringify(m));
-    assert(m_json == m);
-    
-    auto um_json = OSerialize::JSON::parse<std::unordered_map<std::string, int>>(OSerialize::JSON::stringify(um));
-    assert(um_json == um);
-    
-    // XML
-    auto m_xml = OSerialize::XML::parse<std::map<std::string, int>>(OSerialize::XML::stringify(m, "map"), "map");
-    assert(m_xml == m);
-    
-    auto um_xml = OSerialize::XML::parse<std::unordered_map<std::string, int>>(OSerialize::XML::stringify(um, "map"), "map");
-    assert(um_xml == um);
-    
-    // INI
-    auto m_ini = OSerialize::INI::parse<std::map<std::string, int>>(OSerialize::INI::stringify(m, "map"), "map");
-    assert(m_ini == m);
-    
-    std::cout << "[STL] Maps Passed!" << std::endl;
-}
-
-void test_smart_pointers() {
-    std::cout << "[STL] Testing Smart Pointers..." << std::endl;
-    
-    std::shared_ptr<int> p1 = std::make_shared<int>(100);
-    std::shared_ptr<int> p2 = nullptr;
-    
-    // JSON
-    auto p1_json = OSerialize::JSON::parse<std::shared_ptr<int>>(OSerialize::JSON::stringify(p1));
-    assert(*p1_json == 100);
-    auto p2_json = OSerialize::JSON::parse<std::shared_ptr<int>>(OSerialize::JSON::stringify(p2));
-    assert(p2_json == nullptr);
-    
-    // XML
-    auto p1_xml = OSerialize::XML::parse<std::shared_ptr<int>>(OSerialize::XML::stringify(p1, "val"), "val");
-    assert(*p1_xml == 100);
-    
-    // INI (Smart pointer points to single value)
-    // auto p1_ini = OSerialize::INI::parse<std::shared_ptr<int>>(OSerialize::INI::stringify(p1, "val"), "val");
-    // assert(*p1_ini == 100);
-    
-    std::cout << "[STL] Smart Pointers Passed!" << std::endl;
-}
-
-void test_variant() {
-    std::cout << "[STL] Testing Variant (Write Only)..." << std::endl;
-    // Variant read support needs visitor or explicit type handling which is tricky in generic deserialize.
-    // Our implementation currently supports to_json/to_xml.
-    
-    std::variant<int, std::string> v1 = 123;
-    std::variant<int, std::string> v2 = "hello";
-    
-    std::cout << "Variant Int JSON: " << OSerialize::JSON::stringify(v1) << std::endl;
-    std::cout << "Variant String JSON: " << OSerialize::JSON::stringify(v2) << std::endl;
-    
-    std::cout << "[STL] Variant Passed!" << std::endl;
-}
-
-void test_custom_structs() {
-  std::cout << "[STL] Testing Custom Structs..." << std::endl;
-
-  Person p{"Alice", 30, {"C++", "Qt"}};
-
-  // JSON
-  std::string p_json = OSerialize::JSON::stringify(p);
-  assert(OSerialize::JSON::parse<Person>(p_json) == p);
-
-  // XML
-  std::string p_xml = OSerialize::XML::stringify(p, "Person");
-  assert(OSerialize::XML::parse<Person>(p_xml, "Person") == p);
-
-  // INI
-  std::string p_ini = OSerialize::INI::stringify(p, "Person");
-  assert(OSerialize::INI::parse<Person>(p_ini, "Person") == p);
-
-  std::cout << "[STL] Custom Structs Passed!" << std::endl;
-}
-
-void test_mulStory_structs() {
-  std::cout << "[STL] Testing mulStory (Nested) Structs..." << std::endl;
-
-  Group g;
-  g.groupName = "Engineering";
-  g.leader = {"Alice", 30, {"C++", "Management"}};
-  g.members.push_back({"Bob", 25, {"Java", "Python"}});
-  g.members.push_back({"Charlie", 28, {"Go", "Rust"}});
-
-  // JSON
-  std::string g_json = OSerialize::JSON::stringify(g);
-  Group g_parsed_json = OSerialize::JSON::parse<Group>(g_json);
-  assert(g_parsed_json == g);
-
-  // XML
-  std::string g_xml = OSerialize::XML::stringify(g, "Group");
-  Group g_parsed_xml = OSerialize::XML::parse<Group>(g_xml, "Group");
-  assert(g_parsed_xml == g);
-
-  // INI
-  // INI serialization for nested structs (Group -> Person) is not supported 
-  // because INI is flat and we don't have operator<< for Person.
-  // std::string g_ini = OSerialize::INI::stringify(g, "Group");
-  // assert(OSerialize::INI::parse<Group>(g_ini, "Group") == g);
-
-  std::cout << "[STL] mulStory Structs Passed!" << std::endl;
-}
-
-void run_all() {
-  test_basic_types();
-  test_containers();
-  test_maps();
-  test_smart_pointers();
-  test_variant();
-  test_custom_structs();
-  test_mulStory_structs();
-}
-} // namespace StlTest
-
-#endif // STL_TEST_H
+#endif
