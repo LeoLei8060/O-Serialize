@@ -108,8 +108,7 @@ void test_qmap()
     std::string        json = JSON::obj_to_string(original);
     QMap<QString, int> parsed = JSON::string_to_obj<QMap<QString, int>>(json);
     assert(original == parsed);
-    assert((original
-            == JSON::string_to_obj<QMap<QString, int>>(json))); // assert宏导致异常，需要添加()来解决
+    assert((original == JSON::string_to_obj<QMap<QString, int>>(json))); // assert宏导致异常，需要添加()来解决
 }
 
 void test_qhash()
@@ -203,6 +202,7 @@ void test_qsharedpointer()
 
 struct AllQtTypes
 {
+    enum EType { kTypeA = 0, kTypeB };
     QString             str;
     QStringList         strList;
     QVector<int>        vec;
@@ -214,19 +214,19 @@ struct AllQtTypes
     QRect               rect;
     QVariant            var;
     QSharedPointer<int> ptr;
+    EType               type;
 
     bool operator==(const AllQtTypes &other) const
     {
-        return str == other.str && strList == other.strList && vec == other.vec
-               && list == other.list && map == other.map && date == other.date && dt == other.dt
-               && pt == other.pt && rect == other.rect && var == other.var
-               && ((ptr.isNull() && other.ptr.isNull())
-                   || (!ptr.isNull() && !other.ptr.isNull() && *ptr == *other.ptr));
+        return str == other.str && strList == other.strList && vec == other.vec && list == other.list
+               && map == other.map && date == other.date && dt == other.dt && pt == other.pt && rect == other.rect
+               && var == other.var
+               && ((ptr.isNull() && other.ptr.isNull()) || (!ptr.isNull() && !other.ptr.isNull() && *ptr == *other.ptr));
     }
 };
 } // namespace QtTest
 
-O_SERIALIZE_STRUCT(QtTest::AllQtTypes, str, strList, vec, list, map, date, dt, pt, rect, var, ptr);
+O_SERIALIZE_STRUCT(QtTest::AllQtTypes, str, strList, vec, list, map, date, dt, pt, rect, var, ptr, type);
 
 namespace QtTest {
 void test_all_qt_types()
@@ -244,6 +244,7 @@ void test_all_qt_types()
     original.rect = QRect(0, 0, 50, 50);
     original.var = 100;
     original.ptr = QSharedPointer<int>::create(888);
+    original.type = AllQtTypes::kTypeB;
 
     std::string json = JSON::obj_to_string(original);
     AllQtTypes  parsed = JSON::string_to_obj<AllQtTypes>(json);

@@ -50,11 +50,13 @@ namespace Traits {
 
     // STL Map (map, unordered_map)
     template <typename T> struct is_stl_map : std::false_type {};
-    template <typename V> struct is_stl_map<std::map<std::string, V>> : std::true_type {};
-    template <typename V> struct is_stl_map<std::unordered_map<std::string, V>> : std::true_type {};
+    template <typename K, typename V> struct is_stl_map<std::map<K, V>> : std::true_type {};
+    template <typename K, typename V> struct is_stl_map<std::unordered_map<K, V>> : std::true_type {};
 #ifdef O_SERIALIZE_USE_QT
-    template <typename V> struct is_stl_map<std::map<QString, V>> : std::true_type {};
-    template <typename V> struct is_stl_map<std::unordered_map<QString, V>> : std::true_type {};
+    // 允许 Qt 环境下的特化，但上面的通用模板已经覆盖了
+    // 我们可以保留这些以防万一，或者依赖通用模板
+    // 为了保持 base.h 简洁，且通用模板 <K, V> 已经包含了 <QString, V>，这里不再需要特化
+    // 除非需要区分处理，但 is_stl_map 只是 trait。
 #endif
 
     // std::pair 序列化和反序列化时需要特殊处理，"first" 和 "second" 字段分别表示K和V
