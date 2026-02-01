@@ -14,13 +14,11 @@ namespace Meta {
         static constexpr bool is_defined = false;
     };
 
-    // Helper to check if a type has reflection defined
     template <typename T>
     struct has_reflection {
         static constexpr bool value = Reflector<T>::is_defined;
     };
 
-    // Function to apply a visitor to all members
     template <typename T, typename Visitor>
     typename std::enable_if<has_reflection<T>::value>::type
     visit_members(T& obj, Visitor&& visitor) {
@@ -37,7 +35,6 @@ namespace Meta {
 
 } // namespace OSerialize
 
-// Helper macros
 #define EXPAND(x) x
 #define GET_MACRO(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20, _21, _22, _23, _24, _25, NAME, ...) NAME
 
@@ -73,7 +70,6 @@ namespace Meta {
 // The action will be: visitor(#member, obj.member);
 #define VISIT_MEMBER(member) visitor(#member, obj.member);
 
-// Macro to register a struct
 #define O_SERIALIZE_STRUCT(Type, ...) \
 namespace OSerialize { namespace Meta { \
     template <> \
